@@ -10,14 +10,13 @@ import {
 	LeaderboardItemSchema,
 } from "./types";
 
-invariant(
-	process.env.GEMINI_API_KEY,
-	"GEMINI_API_KEY is missing from environment",
-);
+function getGenAI() {
+	const apiKey = process.env.GEMINI_API_KEY;
+	invariant(apiKey, "GEMINI_API_KEY is missing from environment");
+	return new GoogleGenerativeAI(apiKey);
+}
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-const MODEL_NAME = "gemini-3-flash-preview";
+const MODEL_NAME = "gemini-2.0-flash-preview";
 
 const NON_VIABLE_COUNTRIES = [
 	"Somalia",
@@ -34,6 +33,7 @@ export async function analyzeCountryWithAI(
 	countryName: string,
 	searchContext: string,
 ): Promise<CountryData> {
+	const genAI = getGenAI();
 	const model = genAI.getGenerativeModel({
 		model: MODEL_NAME,
 		generationConfig: {
@@ -124,6 +124,7 @@ export async function analyzeCountryWithAI(
 }
 
 export async function getTopDestinationsAI(): Promise<LeaderboardItem[]> {
+	const genAI = getGenAI();
 	const model = genAI.getGenerativeModel({
 		model: MODEL_NAME,
 		generationConfig: {
