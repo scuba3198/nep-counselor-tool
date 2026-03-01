@@ -11,7 +11,7 @@ import {
 } from "./types";
 
 function getGenAI() {
-	const apiKey = process.env.GEMINI_API_KEY;
+	const apiKey = process.env["GEMINI_API_KEY"];
 	invariant(apiKey, "GEMINI_API_KEY is missing from environment");
 	return new GoogleGenerativeAI(apiKey);
 }
