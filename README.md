@@ -56,7 +56,7 @@
 3. **Set up Environment Variables**
    Create a `.env.local` file:
    ```env
-   GOOGLE_GENERATIVE_AI_API_KEY=your_key_here
+   NEXT_PUBLIC_GEMINI_API_KEY=your_key_here
    ```
 
 4. **Launch the Development Server**
