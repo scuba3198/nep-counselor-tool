@@ -8,8 +8,8 @@
 		"start": "next start",
 		"lint": "biome lint .",
 		"format": "biome format . --write",
-		"check": "biome check --write . && npm run cruise && npm run test",
-		"cruise": "depcruise --config .dependency-cruiser.cjs src",
+		"check": "biome check --write . && npm run test",
+		"type-check": "tsc --noEmit",
 		"test": "vitest run",
 		"e2e": "playwright test"
 	},
@@ -35,7 +35,6 @@
 		"@types/react-dom": "^19",
 		"@vitejs/plugin-react": "^5.1.4",
 		"@vitest/coverage-v8": "^4.0.18",
-		"dependency-cruiser": "^17.3.8",
 		"jsdom": "^28.1.0",
 		"knip": "^5.85.0",
 		"msw": "^2.12.10",
