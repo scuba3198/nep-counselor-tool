@@ -12,6 +12,7 @@ export default defineConfig({
 			reporter: ["text", "json", "html", "lcov"],
 			exclude: ["node_modules/", "src/mocks/"],
 		},
+		exclude: ["**/node_modules/**", "**/dist/**", "**/tests/**"],
 	},
 	resolve: {
 		alias: {

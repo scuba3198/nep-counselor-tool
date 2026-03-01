@@ -7,54 +7,73 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  stage-1-fast-fail:
+    name: Stage 1: Fast Fail (Lint + Types)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Code Quality & Architecture (Biome + DepCruise)
-        run: npm run check
-
+      - run: npm ci
+      - name: Biome CI
+        run: npx biome ci .
       - name: Type Check
-        run: npx tsc --noEmit
+        run: npm run type-check
 
-      - name: Secret Scanning (GitGuardian)
-        uses: GitGuardian/ggshield-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
-
+  stage-2-parallel:
+    name: Stage 2: Parallel Verification
+    needs: stage-1-fast-fail
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        task: [test, e2e, knip]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      
       - name: Dead Code Analysis (Knip)
+        if: matrix.task == 'knip'
         run: npx knip
 
       - name: Unit Tests & Coverage (Vitest)
+        if: matrix.task == 'test'
         run: npm run test -- --coverage
-
+      
       - name: Upload Coverage to Codecov
+        if: matrix.task == 'test'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage/lcov.info
 
-      - name: Repository History Secret Scan (TruffleHog)
+      - name: Install Playwright Browsers
+        if: matrix.task == 'e2e'
+        run: npx playwright install chromium --with-deps
+      
+      - name: E2E Tests (Playwright)
+        if: matrix.task == 'e2e'
+        run: npm run e2e
+
+  security-scans:
+    name: Security Scans
+    needs: stage-1-fast-fail
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: GitGuardian Scan
+        uses: GitGuardian/ggshield-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+      - name: TruffleHog Scan
         uses: trufflesecurity/trufflehog@main
         with:
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
           extra_args: --debug --only-verified
-
-      - name: Install Playwright Browsers
-        run: npx playwright install chromium --with-deps
-
-      - name: E2E Tests (Playwright)
-        run: npm run e2e

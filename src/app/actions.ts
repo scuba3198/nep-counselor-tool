@@ -1,10 +1,12 @@
 "use server";
 
 import invariant from "tiny-invariant";
+import { z } from "zod";
 import {
 	analyzeCountryWithAI as geminiAnalyze,
 	getTopDestinationsAI as geminiGetTop,
 } from "@/lib/gemini";
+import logger from "@/lib/logger";
 import type { CountryData, LeaderboardItem } from "@/lib/types";
 
 /**
@@ -15,8 +17,22 @@ import type { CountryData, LeaderboardItem } from "@/lib/types";
 export async function performDeepAIResearch(
 	countryName: string,
 ): Promise<CountryData> {
+	// ADHERENCE: Agent Engineering Constitution - Input Validation at Trust Boundaries
+	const schema = z.string().min(1, "Country name is required").max(100);
+	const validation = schema.safeParse(countryName);
+
+	if (!validation.success) {
+		logger.error(
+			{ errors: validation.error.format() },
+			"Invalid countryName input",
+		);
+		throw new Error("Invalid input provided to research action");
+	}
+
+	const validatedCountry = validation.data;
+
 	invariant(
-		countryName && countryName.trim().length > 0,
+		validatedCountry && validatedCountry.trim().length > 0,
 		"countryName must be provided",
 	);
 	// SIMULATION: In a real system, we'd use a Search API here.

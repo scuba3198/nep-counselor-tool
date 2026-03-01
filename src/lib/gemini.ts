@@ -83,8 +83,12 @@ export async function analyzeCountryWithAI(
       - financials (must contain bankBalance and annualIncome as strings, e.g., "60k AUD | 55L NPR". Include tax proof/PAN requirements ONLY if they fall under Group A).
   `;
 
+	const startTime = Date.now();
 	try {
-		logger.info({ countryName }, "Initiating AI Country Analysis");
+		logger.info(
+			{ countryName, event: "ai_analysis_start" },
+			"Initiating AI Country Analysis",
+		);
 		const result = await model.generateContent(prompt);
 		const response = await result.response;
 		const text = response.text();
@@ -112,8 +116,14 @@ export async function analyzeCountryWithAI(
 				: calculateIndicator(parsed.scores),
 		} as CountryData;
 
+		const duration = Date.now() - startTime;
 		logger.info(
-			{ country: finalData.name, successScore: finalData.scores.visaSuccess },
+			{
+				country: finalData.name,
+				successScore: finalData.scores.visaSuccess,
+				event: "ai_analysis_success",
+				latencyMs: duration,
+			},
 			"AI Analysis Successful",
 		);
 		return finalData;
