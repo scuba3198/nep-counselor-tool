@@ -1,7 +1,5 @@
 # 🏔️ Nepal Counselor Tool
 
-![Banner](.github/assets/banner.png)
-
 [![CI](https://github.com/scuba3198/nep-counselor-tool/actions/workflows/ci.yml/badge.svg)](https://github.com/scuba3198/nep-counselor-tool/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Codecov](https://codecov.io/gh/scuba3198/nep-counselor-tool/branch/main/graph/badge.svg)](https://codecov.io/gh/scuba3198/nep-counselor-tool)
