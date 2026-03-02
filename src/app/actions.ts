@@ -7,12 +7,12 @@ import {
 	getTopDestinationsAI as geminiGetTop,
 } from "@/lib/gemini";
 import logger from "@/lib/logger";
+import { searchBrave } from "@/lib/search";
 import type { CountryData, LeaderboardItem } from "@/lib/types";
 
 /**
  * Server Action to perform a deep AI research on a country.
- * In a production app, this would trigger a real-time web search
- * and pass the content to Gemini.
+ * Uses Brave Search API to fetch real-time visa intelligence.
  */
 export async function performDeepAIResearch(
 	countryName: string,
@@ -21,12 +21,16 @@ export async function performDeepAIResearch(
 	const schema = z.string().min(1, "Country name is required").max(100);
 	const validation = schema.safeParse(countryName);
 
+	// SECURITY: Add authentication check here if restricted to counselors.
+	// if (!await isAuthenticated()) throw new Error("Unauthorized");
+
 	if (!validation.success) {
 		logger.error(
 			{ errors: validation.error.format() },
 			"Invalid countryName input",
 		);
-		throw new Error("Invalid input provided to research action");
+		// Return a generic error to the client
+		throw new Error("Invalid request parameters");
 	}
 
 	const validatedCountry = validation.data;
@@ -35,18 +39,35 @@ export async function performDeepAIResearch(
 		validatedCountry && validatedCountry.trim().length > 0,
 		"countryName must be provided",
 	);
-	// SIMULATION: In a real system, we'd use a Search API here.
-	// For now, we provide the context that we know or would have found.
-	const simulatedContext = `
-    Latest updates for ${countryName}:
-    - New visa regulations released this month focusing on financial solvency.
-    - Specific student quotas for international applicants.
-    - Work rights extended to 24 hours per week.
-    - Post-study work permit duration remains 2-3 years.
-    - Inflation impacting living costs in major cities.
-  `;
 
-	return await geminiAnalyze(countryName, simulatedContext);
+	const searchContext = await searchBrave(validatedCountry);
+
+	try {
+		return await geminiAnalyze(countryName, searchContext);
+	} catch (error) {
+		console.error("SERVER_ACTION_CRASH:", error);
+		// Return a safe error object instead of throwing to prevent generic 500 error in Next.js production
+		return {
+			id: "ERROR",
+			name: countryName,
+			indicator: "Not Recommended",
+			why: `Intelligence Engine Error: ${error instanceof Error ? error.message : "Unknown error"}. Check server logs for digest.`,
+			isInvalid: true,
+			scores: {
+				visaSuccess: 0,
+				financialBarrier: 0,
+				jobProspects: 0,
+				prPathways: 0,
+			},
+			livingCost: "N/A",
+			currency: "N/A",
+			visaDetails: {
+				type: "AI Error",
+				requirementHighlight: "Internal Server Fault",
+				processingTime: "N/A",
+			},
+		} as CountryData;
+	}
 }
 
 /**
