@@ -12,10 +12,11 @@
 
 ## ✨ Features
 
-- **🚀 Ultra-Fast Interaction**: Built on Next.js 15+ for blazing fast performance.
-- **🛡️ Secure by Design**: Integrated with GitGuardian and TruffleHog for maximum security.
+- **🚀 Ultra-Fast Interaction**: Built on Next.js 16+ for blazing fast performance.
+- **🛡️ Secure by Design**: Security-hardened with sanitized logging and server-side secret management.
 - **🧪 Robust Testing**: Comprehensive suite using Vitest, Playwright, and MSW.
 - **🎨 Premium UI**: Modern aesthetics with dark mode support and micro-animations.
+- **🔍 Real-Time Research**: Integrated with Brave Search API for live visa intelligence.
 - **🤖 Powered by Google Gemini**: Advanced AI integration for intelligent counseling support.
 
 ---
@@ -28,6 +29,7 @@
 | **Logic** | [React](https://reactjs.org/), [Zod](https://zod.dev/) |
 | **Styling** | Vanilla CSS (Premium Custom Design) |
 | **AI** | [Google Generative AI](https://ai.google.dev/) |
+| **Search** | [Brave Search API](https://api.search.brave.com/) |
 | **Quality** | [Biome](https://biomejs.dev/), [TypeScript](https://www.typescriptlang.org/) |
 | **Testing** | Vitest, Playwright, MSW |
 
@@ -49,20 +51,28 @@
    ```
 
 2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/scuba3198/nep-counselor-tool.git
+    cd nep-counselor-tool
+    ```
 
-3. **Set up Environment Variables**
-   Create a `.env.local` file:
-   ```env
-   GEMINI_API_KEY=your_key_here
-   ```
+2.  **Install dependencies**
+    ```bash
+    npm install
+    ```
 
-4. **Launch the Development Server**
-   ```bash
-   npm run dev
-   ```
+3.  **Set up Environment Variables**
+    Create a `.env.local` file:
+    ```env
+    GEMINI_API_KEY=your_key_here
+    BRAVE_SEARCH_API_KEY=your_key_here
+    ```
+
+4.  **Launch the Development Server**
+    ```bash
+    npm run dev
+    ```
 
 ---
 

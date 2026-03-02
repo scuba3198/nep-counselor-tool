@@ -12,11 +12,12 @@ import {
 
 function getGenAI() {
 	const apiKey = process.env["GEMINI_API_KEY"];
+	console.log("DEBUG: GEMINI_API_KEY status:", apiKey ? "PRESENT" : "MISSING");
 	invariant(apiKey, "GEMINI_API_KEY is missing from environment");
 	return new GoogleGenerativeAI(apiKey);
 }
 
-const MODEL_NAME = "gemini-2.0-flash-preview";
+const MODEL_NAME = "gemini-3-flash-preview";
 
 const NON_VIABLE_COUNTRIES = [
 	"Somalia",
@@ -128,8 +129,9 @@ export async function analyzeCountryWithAI(
 		);
 		return finalData;
 	} catch (error) {
+		const msg = error instanceof Error ? error.message : String(error);
 		logger.error({ error, countryName }, "Gemini AI Analysis Failed");
-		throw new Error("Could not complete AI intelligence refresh.");
+		throw new Error(`AI Refresh Failed: ${msg}`);
 	}
 }
 
