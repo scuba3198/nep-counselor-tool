@@ -72,7 +72,7 @@ export async function analyzeCountryWithAI(
     - For Germany: MUST mention "Blocked Account".
 
     OUTPUT REQUIREMENT:
-    Return a JSON object matching the CountryData interface. Use standard ISO codes for ID.
+    Return EXACTLY ONE JSON object matching the CountryData interface. DO NOT return an array. Use standard ISO codes for ID.
     The "indicator" must be one of: "Easy", "Medium", "Difficult", "Not Recommended".
     The "why" must be an authoritative summary specifically for counselors in Nepal.
 
@@ -97,8 +97,11 @@ export async function analyzeCountryWithAI(
 		const rawParsed = JSON.parse(text);
 		invariant(rawParsed, "AI response could not be parsed as JSON");
 
+		// ROBUSTNESS: Handle case where AI wraps the object in an array (common quirk)
+		const dataToParse = Array.isArray(rawParsed) ? rawParsed[0] : rawParsed;
+
 		// ZOD VALIDATION: This handles type checking and missing fields.
-		const parsed = CountryDataSchema.parse(rawParsed);
+		const parsed = CountryDataSchema.parse(dataToParse);
 		invariant(
 			parsed.id && parsed.name,
 			"Parsed AI response is missing essential identifying fields",

@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  ArrowRight,
-  Loader2,
-  Search,
-  ShieldAlert,
-  Sparkles,
+	ArrowRight,
+	Loader2,
+	Search,
+	ShieldAlert,
+	Sparkles,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import ChecklistTool from "@/components/ChecklistTool";
@@ -13,239 +13,241 @@ import { IndicatorBadge, ScoreBar } from "@/components/Indicators";
 import Leaderboard from "@/components/Leaderboard";
 import PolicyFeed from "@/components/PolicyFeed";
 import {
-  type ChecklistItem,
-  COUNTRY_CHECKLISTS,
-  DEFAULT_CHECKLIST,
+	type ChecklistItem,
+	COUNTRY_CHECKLISTS,
+	DEFAULT_CHECKLIST,
 } from "@/lib/checklists";
 import type { CountryData, LeaderboardItem } from "@/lib/types";
 import { MOCK_UPDATES } from "@/lib/updates";
 import { getTopDestinations, performDeepAIResearch } from "./actions";
 
 export default function Home() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [result, setResult] = useState<CountryData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+	const [searchQuery, setSearchQuery] = useState("");
+	const [result, setResult] = useState<CountryData | null>(null);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-  const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
-  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
+	const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
+	const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
 
-  const fetchLeaderboard = useCallback(async () => {
-    setIsLeaderboardLoading(true);
-    try {
-      const data = await getTopDestinations();
-      setLeaderboard(data);
-    } catch {
-      console.error("Leaderboard refresh failed.");
-    } finally {
-      setIsLeaderboardLoading(false);
-    }
-  }, []);
+	const fetchLeaderboard = useCallback(async () => {
+		setIsLeaderboardLoading(true);
+		try {
+			const data = await getTopDestinations();
+			setLeaderboard(data);
+		} catch {
+			console.error("Leaderboard refresh failed.");
+		} finally {
+			setIsLeaderboardLoading(false);
+		}
+	}, []);
 
-  useEffect(() => {
-    fetchLeaderboard();
-  }, [fetchLeaderboard]);
+	useEffect(() => {
+		fetchLeaderboard();
+	}, [fetchLeaderboard]);
 
-  const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
-    if (e) e.preventDefault();
-    const query = overrideQuery || searchQuery;
-    if (!query.trim()) return;
+	const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
+		if (e) e.preventDefault();
+		const query = overrideQuery || searchQuery;
+		if (!query.trim()) return;
 
-    if (overrideQuery) setSearchQuery(overrideQuery);
+		if (overrideQuery) setSearchQuery(overrideQuery);
 
-    setLoading(true);
-    setError(null);
+		setLoading(true);
+		setError(null);
 
-    try {
-      const data = await performDeepAIResearch(query);
-      if (data.isInvalid) {
-        setError(
-          data.why || "This location is not a recognized study destination.",
-        );
-        setResult(null);
-      } else {
-        setResult(data);
-        setError(null);
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Analysis failed";
-      setError(`AI Analysis failed: ${msg}. Check if GEMINI_API_KEY is configured.`);
-      setResult(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+		try {
+			const data = await performDeepAIResearch(query);
+			if (data.isInvalid) {
+				setError(
+					data.why || "This location is not a recognized study destination.",
+				);
+				setResult(null);
+			} else {
+				setResult(data);
+				setError(null);
+			}
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : "Analysis failed";
+			setError(
+				`AI Analysis failed: ${msg}. Check if GEMINI_API_KEY is configured.`,
+			);
+			setResult(null);
+		} finally {
+			setLoading(false);
+		}
+	};
 
-  return (
-    <div className="container">
-      <header className="hero">
-        <div className="hero-grid">
-          <div className="hero-main">
-            <div className="badge glass">
-              <ShieldAlert size={14} className="icon-crimson" />
-              <span>Live Visa Intelligence Engine</span>
-            </div>
-            <h1 className="gradient-text">Hamro Foreign Study Guide</h1>
-            <p className="subtitle">
-              Global visa intelligence for Nepal&apos;s brightest minds.
-            </p>
+	return (
+		<div className="container">
+			<header className="hero">
+				<div className="hero-grid">
+					<div className="hero-main">
+						<div className="badge glass">
+							<ShieldAlert size={14} className="icon-crimson" />
+							<span>Live Visa Intelligence Engine</span>
+						</div>
+						<h1 className="gradient-text">Hamro Foreign Study Guide</h1>
+						<p className="subtitle">
+							Global visa intelligence for Nepal&apos;s brightest minds.
+						</p>
 
-            <div className="search-box">
-              <form className="search-bar glass" onSubmit={handleSearch}>
-                <Search size={20} className="search-icon" />
-                <input
-                  type="text"
-                  placeholder="Search any country (e.g., Japan, Germany, USA)..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <button type="submit" className="ai-btn" disabled={loading}>
-                  {loading ? (
-                    <Loader2 className="animate-spin" size={20} />
-                  ) : (
-                    <>
-                      <Sparkles size={18} />
-                      <span>AI Research</span>
-                    </>
-                  )}
-                </button>
-              </form>
-              {error && <p className="error-msg">{error}</p>}
-            </div>
-          </div>
+						<div className="search-box">
+							<form className="search-bar glass" onSubmit={handleSearch}>
+								<Search size={20} className="search-icon" />
+								<input
+									type="text"
+									placeholder="Search any country (e.g., Japan, Germany, USA)..."
+									value={searchQuery}
+									onChange={(e) => setSearchQuery(e.target.value)}
+								/>
+								<button type="submit" className="ai-btn" disabled={loading}>
+									{loading ? (
+										<Loader2 className="animate-spin" size={20} />
+									) : (
+										<>
+											<Sparkles size={18} />
+											<span>AI Research</span>
+										</>
+									)}
+								</button>
+							</form>
+							{error && <p className="error-msg">{error}</p>}
+						</div>
+					</div>
 
-          <aside className="hero-aside">
-            <Leaderboard
-              items={leaderboard}
-              isLoading={isLeaderboardLoading}
-              onRefresh={fetchLeaderboard}
-              onSelect={(country) => handleSearch(undefined, country)}
-            />
-          </aside>
-        </div>
-      </header>
+					<aside className="hero-aside">
+						<Leaderboard
+							items={leaderboard}
+							isLoading={isLeaderboardLoading}
+							onRefresh={fetchLeaderboard}
+							onSelect={(country) => handleSearch(undefined, country)}
+						/>
+					</aside>
+				</div>
+			</header>
 
-      {result && (
-        <section className="result-view glass animate-in">
-          <div className="result-header">
-            <div className="title-area">
-              <h2>{result.name}</h2>
-              <IndicatorBadge
-                indicator={result.indicator}
-                description={result.why}
-              />
-            </div>
-            <div className="visa-summary">
-              <span className="type">
-                {result.visaDetails?.type || "Standard Student Visa"}
-              </span>
-              <span className="dot">•</span>
-              <span className="time">
-                {result.visaDetails?.processingTime || "Variable"} processing
-              </span>
-            </div>
-          </div>
+			{result && (
+				<section className="result-view glass animate-in">
+					<div className="result-header">
+						<div className="title-area">
+							<h2>{result.name}</h2>
+							<IndicatorBadge
+								indicator={result.indicator}
+								description={result.why}
+							/>
+						</div>
+						<div className="visa-summary">
+							<span className="type">
+								{result.visaDetails?.type || "Standard Student Visa"}
+							</span>
+							<span className="dot">•</span>
+							<span className="time">
+								{result.visaDetails?.processingTime || "Variable"} processing
+							</span>
+						</div>
+					</div>
 
-          <div className="result-grid">
-            <div className="analysis-pane">
-              <h3>Counselor Assessment</h3>
-              <p className="why-text">{result.why}</p>
+					<div className="result-grid">
+						<div className="analysis-pane">
+							<h3>Counselor Assessment</h3>
+							<p className="why-text">{result.why}</p>
 
-              <div className="detail-box">
-                <h4>
-                  <ArrowRight size={16} /> Key Requirement
-                </h4>
-                <p>{result.visaDetails.requirementHighlight}</p>
-              </div>
+							<div className="detail-box">
+								<h4>
+									<ArrowRight size={16} /> Key Requirement
+								</h4>
+								<p>{result.visaDetails.requirementHighlight}</p>
+							</div>
 
-              <div className="detail-box">
-                <h4>
-                  <ArrowRight size={16} /> Estimated Cost
-                </h4>
-                <p>{result.livingCost} (Excluding Tuition)</p>
-              </div>
-            </div>
+							<div className="detail-box">
+								<h4>
+									<ArrowRight size={16} /> Estimated Cost
+								</h4>
+								<p>{result.livingCost} (Excluding Tuition)</p>
+							</div>
+						</div>
 
-            <div className="score-pane">
-              <h3>Factor breakdown</h3>
-              <ScoreBar
-                label="Visa Success Rate"
-                score={result.scores.visaSuccess}
-              />
-              <ScoreBar
-                label="Financial Ease"
-                score={result.scores.financialBarrier}
-              />
-              <ScoreBar
-                label="Job Prospects"
-                score={result.scores.jobProspects}
-              />
-              <ScoreBar
-                label="PR Opportunity"
-                score={result.scores.prPathways}
-              />
+						<div className="score-pane">
+							<h3>Factor breakdown</h3>
+							<ScoreBar
+								label="Visa Success Rate"
+								score={result.scores.visaSuccess}
+							/>
+							<ScoreBar
+								label="Financial Ease"
+								score={result.scores.financialBarrier}
+							/>
+							<ScoreBar
+								label="Job Prospects"
+								score={result.scores.jobProspects}
+							/>
+							<ScoreBar
+								label="PR Opportunity"
+								score={result.scores.prPathways}
+							/>
 
-              <div className="spacer" />
-              {(() => {
-                const baseItems =
-                  COUNTRY_CHECKLISTS[result.id] || DEFAULT_CHECKLIST;
-                // If AI provided specific financials, inject them into the checklist
-                const finalItems: ChecklistItem[] = baseItems.map((item) => {
-                  if (result.financials && item.category === "Financial") {
-                    if (item.label.toLowerCase().includes("balance")) {
-                      return {
-                        ...item,
-                        label: `Bank Balance (${result.financials.bankBalance})`,
-                      };
-                    }
-                    if (item.label.toLowerCase().includes("income")) {
-                      return {
-                        ...item,
-                        label: `Annual Income (${result.financials.annualIncome})`,
-                      };
-                    }
-                  }
-                  return item;
-                });
-                return <ChecklistTool items={finalItems} />;
-              })()}
-            </div>
-          </div>
-        </section>
-      )}
+							<div className="spacer" />
+							{(() => {
+								const baseItems =
+									COUNTRY_CHECKLISTS[result.id] || DEFAULT_CHECKLIST;
+								// If AI provided specific financials, inject them into the checklist
+								const finalItems: ChecklistItem[] = baseItems.map((item) => {
+									if (result.financials && item.category === "Financial") {
+										if (item.label.toLowerCase().includes("balance")) {
+											return {
+												...item,
+												label: `Bank Balance (${result.financials.bankBalance})`,
+											};
+										}
+										if (item.label.toLowerCase().includes("income")) {
+											return {
+												...item,
+												label: `Annual Income (${result.financials.annualIncome})`,
+											};
+										}
+									}
+									return item;
+								});
+								return <ChecklistTool items={finalItems} />;
+							})()}
+						</div>
+					</div>
+				</section>
+			)}
 
-      {!result && !loading && (
-        <section className="featured-grid">
-          <div className="card glass">
-            <Search className="card-icon" />
-            <h3>Dynamic Scoring</h3>
-            <p>
-              Every search triggers a vector analysis of visa, jobs, and PR
-              likelihood.
-            </p>
-          </div>
-          <div className="card glass">
-            <ArrowRight className="card-icon" />
-            <h3>Counselor Dashboard</h3>
-            <p>
-              Built-in indicators to help you suggest the best destination for
-              students.
-            </p>
-          </div>
-          <div className="card glass">
-            <ShieldAlert className="card-icon" />
-            <h3>Zero-Vulnerability</h3>
-            <p>
-              Strict sanitization and type-safe architecture for maximum
-              security.
-            </p>
-          </div>
-        </section>
-      )}
+			{!result && !loading && (
+				<section className="featured-grid">
+					<div className="card glass">
+						<Search className="card-icon" />
+						<h3>Dynamic Scoring</h3>
+						<p>
+							Every search triggers a vector analysis of visa, jobs, and PR
+							likelihood.
+						</p>
+					</div>
+					<div className="card glass">
+						<ArrowRight className="card-icon" />
+						<h3>Counselor Dashboard</h3>
+						<p>
+							Built-in indicators to help you suggest the best destination for
+							students.
+						</p>
+					</div>
+					<div className="card glass">
+						<ShieldAlert className="card-icon" />
+						<h3>Zero-Vulnerability</h3>
+						<p>
+							Strict sanitization and type-safe architecture for maximum
+							security.
+						</p>
+					</div>
+				</section>
+			)}
 
-      <PolicyFeed updates={MOCK_UPDATES} />
+			<PolicyFeed updates={MOCK_UPDATES} />
 
-      <style jsx>{`
+			<style jsx>{`
         .container {
           max-width: 1200px;
           margin: 0 auto;
@@ -621,6 +623,6 @@ export default function Home() {
           }
         }
       `}</style>
-    </div>
-  );
+		</div>
+	);
 }
