@@ -40,9 +40,8 @@ export async function performDeepAIResearch(
 		"countryName must be provided",
 	);
 
-	const searchContext = await searchBrave(validatedCountry);
-
 	try {
+		const searchContext = await searchBrave(validatedCountry);
 		return await geminiAnalyze(countryName, searchContext);
 	} catch (error) {
 		console.error("SERVER_ACTION_CRASH:", error);
