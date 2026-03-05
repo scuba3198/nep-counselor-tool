@@ -60,3 +60,18 @@ export const calculateIndicator = (scores: ScoreVector): EaseIndicator => {
 	if (average >= 3) return "Difficult";
 	return "Not Recommended";
 };
+export const SearchResult = Schema.Struct({
+	title: Schema.String,
+	url: Schema.String,
+	description: Schema.String,
+});
+export type SearchResult = Schema.Schema.Type<typeof SearchResult>;
+
+export const BraveSearchResponse = Schema.Struct({
+	web: Schema.optional(
+		Schema.Struct({
+			results: Schema.optional(Schema.Array(SearchResult)),
+		}),
+	),
+});
+export type BraveSearchResponse = Schema.Schema.Type<typeof BraveSearchResponse>;
