@@ -1,52 +1,52 @@
-import { z } from "zod";
+import { Schema } from "effect";
 
-export const EaseIndicatorSchema = z.enum([
+export const EaseIndicator = Schema.Literal(
 	"Easy",
 	"Medium",
 	"Difficult",
 	"Not Recommended",
-]);
-export type EaseIndicator = z.infer<typeof EaseIndicatorSchema>;
+);
+export type EaseIndicator = Schema.Schema.Type<typeof EaseIndicator>;
 
-const ScoreVectorSchema = z.object({
-	visaSuccess: z.number().min(1).max(10),
-	financialBarrier: z.number().min(1).max(10),
-	jobProspects: z.number().min(1).max(10),
-	prPathways: z.number().min(1).max(10),
+const ScoreVector = Schema.Struct({
+	visaSuccess: Schema.Number.pipe(Schema.between(1, 10)),
+	financialBarrier: Schema.Number.pipe(Schema.between(1, 10)),
+	jobProspects: Schema.Number.pipe(Schema.between(1, 10)),
+	prPathways: Schema.Number.pipe(Schema.between(1, 10)),
 });
-type ScoreVector = z.infer<typeof ScoreVectorSchema>;
+type ScoreVector = Schema.Schema.Type<typeof ScoreVector>;
 
-export const CountryDataSchema = z.object({
-	id: z.string(),
-	name: z.string(),
-	indicator: EaseIndicatorSchema,
-	scores: ScoreVectorSchema,
-	why: z.string(),
-	visaDetails: z.object({
-		type: z.string(),
-		requirementHighlight: z.string(),
-		processingTime: z.string(),
+export const CountryData = Schema.Struct({
+	id: Schema.String,
+	name: Schema.String,
+	indicator: EaseIndicator,
+	scores: ScoreVector,
+	why: Schema.String,
+	visaDetails: Schema.Struct({
+		type: Schema.String,
+		requirementHighlight: Schema.String,
+		processingTime: Schema.String,
 	}),
-	livingCost: z.string(),
-	currency: z.string(),
-	financials: z
-		.object({
-			bankBalance: z.string(),
-			annualIncome: z.string(),
-		})
-		.optional(),
-	isInvalid: z.boolean().optional(),
+	livingCost: Schema.String,
+	currency: Schema.String,
+	financials: Schema.optional(
+		Schema.Struct({
+			bankBalance: Schema.String,
+			annualIncome: Schema.String,
+		}),
+	),
+	isInvalid: Schema.optional(Schema.Boolean),
 });
-export type CountryData = z.infer<typeof CountryDataSchema>;
+export type CountryData = Schema.Schema.Type<typeof CountryData>;
 
-export const LeaderboardItemSchema = z.object({
-	rank: z.number(),
-	country: z.string(),
-	successRate: z.number(),
-	indicator: z.enum(["Easy", "Medium", "Difficult"]),
-	trend: z.enum(["up", "down", "stable"]),
+export const LeaderboardItem = Schema.Struct({
+	rank: Schema.Number,
+	country: Schema.String,
+	successRate: Schema.Number,
+	indicator: Schema.Literal("Easy", "Medium", "Difficult"),
+	trend: Schema.Literal("up", "down", "stable"),
 });
-export type LeaderboardItem = z.infer<typeof LeaderboardItemSchema>;
+export type LeaderboardItem = Schema.Schema.Type<typeof LeaderboardItem>;
 
 export const calculateIndicator = (scores: ScoreVector): EaseIndicator => {
 	const average =

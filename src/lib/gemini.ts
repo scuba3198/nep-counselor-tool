@@ -1,21 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import invariant from "tiny-invariant";
-import { z } from "zod";
-import logger from "./logger";
-import {
-	type CountryData,
-	CountryDataSchema,
-	calculateIndicator,
-	type LeaderboardItem,
-	LeaderboardItemSchema,
-} from "./types";
-
-function getGenAI() {
-	const apiKey = process.env["GEMINI_API_KEY"];
-	console.log("DEBUG: GEMINI_API_KEY status:", apiKey ? "PRESENT" : "MISSING");
-	invariant(apiKey, "GEMINI_API_KEY is missing from environment");
-	return new GoogleGenerativeAI(apiKey);
-}
+import { Effect, Schema, Layer } from "effect";
+import { CountryData, LeaderboardItem, calculateIndicator } from "./types";
+import { GeminiError, GeminiService } from "./services";
 
 const MODEL_NAME = "gemini-3-flash-preview";
 
@@ -30,19 +16,7 @@ const NON_VIABLE_COUNTRIES = [
 	"Libya",
 ];
 
-export async function analyzeCountryWithAI(
-	countryName: string,
-	searchContext: string,
-): Promise<CountryData> {
-	const genAI = getGenAI();
-	const model = genAI.getGenerativeModel({
-		model: MODEL_NAME,
-		generationConfig: {
-			responseMimeType: "application/json",
-		},
-	});
-
-	const prompt = `
+const ANALYZE_PROMPT = (countryName: string, searchContext: string) => `
     You are a Formal Visa Intelligence Architect. 
     Analyze the following search context regarding visa requirements, costs, and opportunities for Nepalese students in ${countryName}.
     
@@ -82,72 +56,9 @@ export async function analyzeCountryWithAI(
       - id, name, indicator, scores (1-10), why, livingCost, currency
       - visaDetails (must contain type, requirementHighlight, processingTime)
       - financials (must contain bankBalance and annualIncome as strings, e.g., "60k AUD | 55L NPR". Include tax proof/PAN requirements ONLY if they fall under Group A).
-  `;
+`;
 
-	const startTime = Date.now();
-	try {
-		logger.info(
-			{ countryName, event: "ai_analysis_start" },
-			"Initiating AI Country Analysis",
-		);
-		const result = await model.generateContent(prompt);
-		const response = await result.response;
-		const text = response.text();
-
-		const rawParsed = JSON.parse(text);
-		invariant(rawParsed, "AI response could not be parsed as JSON");
-
-		// ROBUSTNESS: Handle case where AI wraps the object in an array (common quirk)
-		const dataToParse = Array.isArray(rawParsed) ? rawParsed[0] : rawParsed;
-
-		// ZOD VALIDATION: This handles type checking and missing fields.
-		const parsed = CountryDataSchema.parse(dataToParse);
-		invariant(
-			parsed.id && parsed.name,
-			"Parsed AI response is missing essential identifying fields",
-		);
-
-		const isNonViable = NON_VIABLE_COUNTRIES.some(
-			(c) =>
-				parsed.name?.toLowerCase().includes(c.toLowerCase()) ||
-				countryName.toLowerCase().includes(c.toLowerCase()),
-		);
-
-		const finalData = {
-			...parsed,
-			indicator: isNonViable
-				? "Not Recommended"
-				: calculateIndicator(parsed.scores),
-		} as CountryData;
-
-		const duration = Date.now() - startTime;
-		logger.info(
-			{
-				country: finalData.name,
-				successScore: finalData.scores.visaSuccess,
-				event: "ai_analysis_success",
-				latencyMs: duration,
-			},
-			"AI Analysis Successful",
-		);
-		return finalData;
-	} catch (error) {
-		const msg = error instanceof Error ? error.message : String(error);
-		logger.error({ error, countryName }, "Gemini AI Analysis Failed");
-		throw new Error(`AI Refresh Failed: ${msg}`);
-	}
-}
-
-export async function getTopDestinationsAI(): Promise<LeaderboardItem[]> {
-	const genAI = getGenAI();
-	const model = genAI.getGenerativeModel({
-		model: MODEL_NAME,
-		generationConfig: {
-			responseMimeType: "application/json",
-		},
-	});
-
-	const prompt = `
+const LEADERBOARD_PROMPT = `
     You are a Global Visa Compliance Officer.
     Identify the TOP 10 countries with the HIGHEST visa success rates and BEST opportunities for Nepalese students right now.
     
@@ -169,33 +80,93 @@ export async function getTopDestinationsAI(): Promise<LeaderboardItem[]> {
     }
 
     Return ONLY the JSON array.
-  `;
+`;
 
-	try {
-		logger.info("Refreshing AI Leaderboard");
-		const result = await model.generateContent(prompt);
-		const response = await result.response;
-		const text = response.text();
+export const GeminiServiceLive = Layer.effect(
+	GeminiService,
+	Effect.gen(function* () {
+		const apiKey = process.env["GEMINI_API_KEY"];
+		console.log(`DEBUG: GeminiServiceLive init. API Key present: ${!!apiKey}`);
+		if (!apiKey) {
+			return yield* Effect.dieMessage(
+				"GEMINI_API_KEY is missing from environment",
+			);
+		}
+		const genAI = new GoogleGenerativeAI(apiKey);
+		const model = genAI.getGenerativeModel({
+			model: MODEL_NAME,
+			generationConfig: { responseMimeType: "application/json" },
+		});
 
-		const rawItems = JSON.parse(text);
+		return {
+			analyzeCountry: (countryName, searchContext) =>
+				Effect.gen(function* () {
+					yield* Effect.logInfo(`Initiating AI Country Analysis for ${countryName}`);
+					const result: any = yield* Effect.tryPromise({
+						try: () => model.generateContent(ANALYZE_PROMPT(countryName, searchContext)),
+						catch: (e) => new GeminiError(String(e)),
+					});
+					const response = result.response;
+					const text = response.text();
 
-		// ZOD VALIDATION: Ensure every item in the list is valid
-		const validatedItems = z.array(LeaderboardItemSchema).parse(rawItems);
+					const rawParsed = yield* Effect.try({
+						try: () => JSON.parse(text),
+						catch: (e) => new GeminiError(`AI response could not be parsed as JSON: ${e}`),
+					});
 
-		const filteredItems = validatedItems.filter(
-			(item) =>
-				!NON_VIABLE_COUNTRIES.some((c) =>
-					item.country?.toLowerCase().includes(c.toLowerCase()),
-				),
-		);
+					const dataToParse = Array.isArray(rawParsed) ? rawParsed[0] : rawParsed;
 
-		logger.info(
-			{ count: filteredItems.length },
-			"Leaderboard Refresh Successful",
-		);
-		return filteredItems;
-	} catch (error) {
-		logger.error({ error }, "Gemini Leaderboard Generation Failed");
-		return [];
-	}
-}
+					// Effect Schema validation
+					const parsed = yield* Schema.decodeUnknown(CountryData)(dataToParse).pipe(
+						Effect.mapError((e) => new GeminiError(`Validation failed: ${e}`)),
+					);
+
+					const isNonViable = NON_VIABLE_COUNTRIES.some(
+						(c) =>
+							parsed.name?.toLowerCase().includes(c.toLowerCase()) ||
+							countryName.toLowerCase().includes(c.toLowerCase()),
+					);
+
+					const finalData: CountryData = {
+						...parsed,
+						indicator: isNonViable
+							? "Not Recommended"
+							: calculateIndicator(parsed.scores),
+					};
+
+					yield* Effect.logInfo(`AI Analysis Successful for ${finalData.name}`);
+					return finalData;
+				}),
+
+			getTopDestinations: () =>
+				Effect.gen(function* () {
+					yield* Effect.logInfo("Refreshing AI Leaderboard");
+					const result: any = yield* Effect.tryPromise({
+						try: () => model.generateContent(LEADERBOARD_PROMPT),
+						catch: (e) => new GeminiError(String(e)),
+					});
+					const response = result.response;
+					const text = response.text();
+
+					const rawItems = yield* Effect.try({
+						try: () => JSON.parse(text),
+						catch: (e) => new GeminiError(`AI response could not be parsed as JSON: ${e}`),
+					});
+
+					const validatedItems = yield* Schema.decodeUnknown(Schema.Array(LeaderboardItem))(rawItems).pipe(
+						Effect.mapError((e) => new GeminiError(`Validation failed: ${e}`)),
+					);
+
+					const filteredItems = validatedItems.filter(
+						(item) =>
+							!NON_VIABLE_COUNTRIES.some((c) =>
+								item.country?.toLowerCase().includes(c.toLowerCase()),
+							),
+					);
+
+					yield* Effect.logInfo("Leaderboard Refresh Successful");
+					return filteredItems;
+				}),
+		};
+	}),
+);
