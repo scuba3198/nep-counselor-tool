@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { afterAll, afterEach, beforeAll } from "vitest";
 
-// Provide a dummy key to satisfy tiny-invariant during test initialization
+// Provide dummy keys for Effect services initialization in tests
 process.env["GEMINI_API_KEY"] = "test-mock-key";
 process.env["BRAVE_SEARCH_API_KEY"] = "test-mock-key";
 

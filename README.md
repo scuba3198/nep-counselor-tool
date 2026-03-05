@@ -13,6 +13,7 @@
 ## ✨ Features
 
 - **🚀 Ultra-Fast Interaction**: Built on Next.js 16+ for blazing fast performance.
+- **⚙️ Effect-First Architecture**: Core logic built with Effect-TS for maximum reliability and type safety.
 - **🛡️ Secure by Design**: Security-hardened with sanitized logging and server-side secret management.
 - **🧪 Robust Testing**: Comprehensive suite using Vitest, Playwright, and MSW.
 - **🎨 Premium UI**: Modern aesthetics with dark mode support and micro-animations.
@@ -26,10 +27,11 @@
 | Category | Technology |
 | :--- | :--- |
 | **Framework** | [Next.js](https://nextjs.org/) |
-| **Logic** | [React](https://reactjs.org/), [Zod](https://zod.dev/) |
-| **Styling** | Vanilla CSS (Premium Custom Design) |
+| **Core Logic** | [Effect-TS](https://effect.website/) (Type-safe functional effects) |
+| **Validation** | [@effect/schema](https://effect.website/docs/schema/introduction) |
 | **AI** | [Google Generative AI](https://ai.google.dev/) |
 | **Search** | [Brave Search API](https://api.search.brave.com/) |
+| **Styling** | Vanilla CSS (Premium Custom Design) |
 | **Quality** | [Biome](https://biomejs.dev/), [TypeScript](https://www.typescriptlang.org/) |
 | **Testing** | Vitest, Playwright, MSW |
 

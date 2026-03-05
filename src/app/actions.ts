@@ -1,14 +1,14 @@
 "use server";
 
-import invariant from "tiny-invariant";
-import { z } from "zod";
+import { Effect, Logger } from "effect";
+import { GeminiServiceLive } from "@/lib/gemini";
+import { BraveSearchServiceLive } from "@/lib/search";
 import {
-	analyzeCountryWithAI as geminiAnalyze,
-	getTopDestinationsAI as geminiGetTop,
-} from "@/lib/gemini";
-import logger from "@/lib/logger";
-import { searchBrave } from "@/lib/search";
+	BraveSearchService,
+	GeminiService,
+} from "@/lib/services";
 import type { CountryData, LeaderboardItem } from "@/lib/types";
+import { customLogger } from "@/lib/logger";
 
 /**
  * Server Action to perform a deep AI research on a country.
@@ -17,62 +17,59 @@ import type { CountryData, LeaderboardItem } from "@/lib/types";
 export async function performDeepAIResearch(
 	countryName: string,
 ): Promise<CountryData> {
-	// ADHERENCE: Agent Engineering Constitution - Input Validation at Trust Boundaries
-	const schema = z.string().min(1, "Country name is required").max(100);
-	const validation = schema.safeParse(countryName);
+	const program = Effect.gen(function* () {
+		const braveSearch = yield* BraveSearchService;
+		const gemini = yield* GeminiService;
 
-	// SECURITY: Add authentication check here if restricted to counselors.
-	// if (!await isAuthenticated()) throw new Error("Unauthorized");
+		// Input Validation
+		if (!countryName || countryName.trim().length === 0) {
+			return yield* Effect.fail(new Error("Country name is required"));
+		}
 
-	if (!validation.success) {
-		logger.error(
-			{ errors: validation.error.format() },
-			"Invalid countryName input",
-		);
-		// Return a generic error to the client
-		throw new Error("Invalid request parameters");
-	}
-
-	const validatedCountry = validation.data;
-
-	invariant(
-		validatedCountry && validatedCountry.trim().length > 0,
-		"countryName must be provided",
+		const searchContext = yield* braveSearch.search(countryName);
+		return yield* gemini.analyzeCountry(countryName, searchContext);
+	}).pipe(
+		Effect.catchAll((error) => {
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			return Effect.succeed({
+				id: "ERROR",
+				name: countryName,
+				indicator: "Not Recommended",
+				why: `Intelligence Engine Error: ${errorMessage}. Check server logs for digest.`,
+				isInvalid: true,
+				scores: {
+					visaSuccess: 0,
+					financialBarrier: 0,
+					jobProspects: 0,
+					prPathways: 0,
+				},
+				livingCost: "N/A",
+				currency: "N/A",
+				visaDetails: {
+					type: "AI Error",
+					requirementHighlight: "Internal Server Fault",
+					processingTime: "N/A",
+				},
+			} as CountryData);
+		}),
+		Effect.provide(GeminiServiceLive),
+		Effect.provide(BraveSearchServiceLive),
+		Effect.provide(Logger.replace(Logger.defaultLogger, customLogger)),
 	);
 
-	const searchContext = await searchBrave(validatedCountry);
-
-	try {
-		return await geminiAnalyze(countryName, searchContext);
-	} catch (error) {
-		console.error("SERVER_ACTION_CRASH:", error);
-		// Return a safe error object instead of throwing to prevent generic 500 error in Next.js production
-		return {
-			id: "ERROR",
-			name: countryName,
-			indicator: "Not Recommended",
-			why: `Intelligence Engine Error: ${error instanceof Error ? error.message : "Unknown error"}. Check server logs for digest.`,
-			isInvalid: true,
-			scores: {
-				visaSuccess: 0,
-				financialBarrier: 0,
-				jobProspects: 0,
-				prPathways: 0,
-			},
-			livingCost: "N/A",
-			currency: "N/A",
-			visaDetails: {
-				type: "AI Error",
-				requirementHighlight: "Internal Server Fault",
-				processingTime: "N/A",
-			},
-		} as CountryData;
-	}
+	return await Effect.runPromise(program);
 }
 
 /**
  * Server Action to fetch the current Top 10 Visa Destinations.
  */
 export async function getTopDestinations(): Promise<LeaderboardItem[]> {
-	return await geminiGetTop();
+	const runnable = GeminiService.pipe(
+		Effect.flatMap((s) => s.getTopDestinations()),
+		Effect.provide(GeminiServiceLive),
+		Effect.provide(Logger.replace(Logger.defaultLogger, customLogger)),
+		Effect.catchAll(() => Effect.succeed([])),
+	);
+
+	return await Effect.runPromise(runnable);
 }

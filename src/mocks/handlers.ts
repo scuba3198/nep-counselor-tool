@@ -35,6 +35,8 @@ export const mockLeaderboard = [
 	},
 ];
 
+export const mockSearchContext = "Real-time search context for Japan: [Result 1] Title: Japan Student Visa Description: Mocked description Source: https://example.com";
+
 export const handlers = [
 	http.post(
 		"https://generativelanguage.googleapis.com/v1beta/models/:model",
@@ -73,4 +75,17 @@ export const handlers = [
 			});
 		},
 	),
+	http.get("https://api.search.brave.com/res/v1/web/search", () => {
+		return HttpResponse.json({
+			web: {
+				results: [
+					{
+						title: "Japan Student Visa",
+						url: "https://example.com",
+						description: "Mocked description",
+					},
+				],
+			},
+		});
+	}),
 ];

@@ -5,7 +5,8 @@ describe("Server Actions with MSW", () => {
 	it("fetches top destinations from mock API", async () => {
 		const data = await getTopDestinations();
 		expect(data).toHaveLength(1);
-		expect(data[0].country).toBe("Japan");
+		const first = data[0] as any;
+		expect(first.country).toBe("Japan");
 	});
 
 	it("fetches country research from mock API", async () => {

@@ -4,8 +4,8 @@ import type { ChecklistItem } from "@/lib/checklists";
 import ChecklistTool from "../ChecklistTool";
 
 const mockItems: ChecklistItem[] = [
-	{ id: "1", label: "Valid Passport", category: "Identity", required: true },
-	{ id: "2", label: "Bank Statement", category: "Financial", required: true },
+	{ id: "1", label: "Valid Passport", category: "Personal", mandatory: true },
+	{ id: "2", label: "Bank Statement", category: "Financial", mandatory: true },
 ];
 
 describe("ChecklistTool", () => {
