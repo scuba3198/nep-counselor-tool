@@ -1,11 +1,6 @@
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Schema } from "effect";
 import { BraveSearchError, BraveSearchService } from "./services";
-
-export interface SearchResult {
-	title: string;
-	url: string;
-	description: string;
-}
+import { BraveSearchResponse } from "./types";
 
 /**
  * Fetches search results from Brave Search API for a given query.
@@ -18,7 +13,8 @@ export function searchBrave(query: string): Effect.Effect<string, BraveSearchErr
 			return yield* Effect.dieMessage("BRAVE_SEARCH_API_KEY is missing from environment");
 		}
 
-		return yield* Effect.tryPromise({
+		// 1. Fetch data with basic status checking
+		const json = yield* Effect.tryPromise({
 			try: async () => {
 				const url = new URL("https://api.search.brave.com/res/v1/web/search");
 				url.searchParams.append("q", `${query} student visa requirements for Nepal`);
@@ -34,27 +30,40 @@ export function searchBrave(query: string): Effect.Effect<string, BraveSearchErr
 
 				if (!response.ok) {
 					const errorBody = await response.text();
-					throw new BraveSearchError(`Brave Search API error: ${response.status} - ${errorBody}`, response.status);
+					throw new BraveSearchError(
+						`Brave Search API error: ${response.status} - ${errorBody}`,
+						response.status,
+					);
 				}
 
-				const data = await response.json();
-				const results = (data.web?.results || []) as SearchResult[];
-
-				if (results.length === 0) {
-					return `No specific real-time results found for ${query}. Falling back to general knowledge.`;
-				}
-
-				const context = results
-					.map(
-						(r, i) =>
-							`[Result ${i + 1}] Title: ${r.title}\nDescription: ${r.description}\nSource: ${r.url}`,
-					)
-					.join("\n\n");
-
-				return `Real-time search context for ${query}:\n\n${context}`;
+				return await response.json();
 			},
-			catch: (e) => (e instanceof BraveSearchError ? e : new BraveSearchError(String(e))),
+			catch: (e) =>
+				e instanceof BraveSearchError ? e : new BraveSearchError(String(e)),
 		});
+
+		// 2. RUNTIME VALIDATION: Use Effect Schema to decode the untrusted payload
+		const responseData = yield* Schema.decodeUnknown(BraveSearchResponse)(json).pipe(
+			Effect.mapError(
+				(e) => new BraveSearchError(`Brave Search Response Schema Error: ${e.message}`),
+			),
+		);
+
+		// 3. Extract results safely from the validated model
+		const results = responseData.web?.results || [];
+
+		if (results.length === 0) {
+			return `No specific real-time results found for ${query}. Falling back to general knowledge.`;
+		}
+
+		const context = results
+			.map(
+				(r, i) =>
+					`[Result ${i + 1}] Title: ${r.title}\nDescription: ${r.description}\nSource: ${r.url}`,
+			)
+			.join("\n\n");
+
+		return `Real-time search context for ${query}:\n\n${context}`;
 	});
 }
 
